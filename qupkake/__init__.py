@@ -16,7 +16,7 @@ try:
     assert "6.4.1" in check_package_decoded
 
     XTB_LOCATION = os.environ.get("XTBPATH") or "xtb"
-except AssertionError:
+except (AssertionError, FileNotFoundError):
     XTB_LOCATION = os.environ.get("XTBPATH") or os.path.join(
         os.path.dirname(__file__), "xtb-641/bin/xtb"
     )
