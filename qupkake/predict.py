@@ -116,16 +116,17 @@ def load_models() -> Tuple[SitesPrediction, SitesPrediction, PredictpKa]:
     from . import models
 
     models_path = impresources.files(models)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     prot_model = SitesPrediction.load_from_checkpoint(
         os.path.join(models_path, "protonation_model.ckpt"),
-        map_location=torch.device("cpu"),
+        map_location=device,
     )
     deprot_model = SitesPrediction.load_from_checkpoint(
         os.path.join(models_path, "deprotonation_model.ckpt"),
-        map_location=torch.device("cpu"),
+        map_location=device,
     )
     pka_model = PredictpKa.load_from_checkpoint(
-        os.path.join(models_path, "pka_model.ckpt"), map_location=torch.device("cpu")
+        os.path.join(models_path, "pka_model.ckpt"), map_location=device
     )
     return prot_model, deprot_model, pka_model
 
@@ -145,7 +146,7 @@ def predict_sites(dataset: MolDataset, model: SitesPrediction) -> list:
         logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        accelerator="cpu",
+        accelerator="auto",
         devices=1,
     )
 
@@ -171,7 +172,7 @@ def predict_pka(dataset: MolPairDataset, model: PredictpKa) -> torch.Tensor:
         logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        accelerator="cpu",
+        accelerator="auto",
         devices=1,
     )
     pka_predictions = trainer.predict(

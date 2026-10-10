@@ -47,10 +47,48 @@ def embed_molecule(mol):
             return mol
 
     mol = Chem.AddHs(mol)
-    AllChem.EmbedMolecule(mol)
-    AllChem.MMFFOptimizeMolecule(mol)
 
-    return mol
+    def _try_embed(params):
+        m = Chem.Mol(mol)
+        if params is None:
+            res = AllChem.EmbedMolecule(m)
+        else:
+            res = AllChem.EmbedMolecule(m, params)
+        if res == 0:
+            AllChem.MMFFOptimizeMolecule(m)
+            return m
+        return None
+
+    from rdkit.Chem import rdDistGeom
+
+    # 1) Default
+    result = _try_embed(None)
+    if result is not None:
+        return result
+
+    # 2) ETKDGv3 with several random seeds
+    for seed in (0xF00D, 42, 1234, 9999, 31415):
+        params = rdDistGeom.ETKDGv3()
+        params.randomSeed = seed
+        params.maxIterations = 10000
+        result = _try_embed(params)
+        if result is not None:
+            return result
+
+    # 3) ETKDGv3 with random coordinates – ultimate fallback for long-chain lipids
+    params = rdDistGeom.ETKDGv3()
+    params.randomSeed = 0xBEEF
+    params.maxIterations = 10000
+    params.useRandomCoords = True
+    result = _try_embed(params)
+    if result is not None:
+        return result
+
+    # 4) Give up
+    raise RuntimeError(
+        "Failed to generate 3D conformation for the molecule. "
+        "The structure may be too complex or contain unsupported features."
+    )
 
 
 def process_file(filename: str, smiles_col: str, name_col: str, root: str) -> str:
